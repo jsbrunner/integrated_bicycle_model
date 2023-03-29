@@ -1,2 +1,2 @@
 # An Integrated Microscopic Bicycle Simulation Model Considering Non-lane-based Traffic Characteristics
-### Master's thesis, Johannes Brunner, ETH Zurich, Spring 2023
+### Master's Thesis Project, Johannes Brunner, ETH Zurich, Spring 2023
