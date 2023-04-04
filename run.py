@@ -5,6 +5,7 @@
 #%%
 from model import *
 from figures import *
+import pandas as pd
 
 #%%
 # Run model
@@ -18,4 +19,5 @@ agent_pos = model.datacollector.get_agent_vars_dataframe() # Pandas dataframe st
 agent_pos.head()
 
 # Export and store the data on your local disk for further analysis 
+agent_pos.to_csv('simulation_data.csv', sep=';')
 # ...

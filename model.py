@@ -12,6 +12,7 @@ import random
 
 # "..." means more things to be added here
 
+
 # In the current setup, all bicycles move at 4 m/s and keep a 0.5 m lateral distance with the edge.
 # The bike lane is 300 m long and 2 m wide.
 # Normally, the entire object (bicycle and cyclist) always stay within the 2-m-wide lane space.
@@ -21,7 +22,7 @@ import random
 #%%
 # Scenario-related  parameters
 random.seed(1) # Random seed for the scenario, note that for initial testings, it is better to use the same random seed so that the results are the same
-Demand = [100,100] # Inflow demand (bicycle/h), each value represents the demand of half an hour (Hence, right now this is a one hour scenario with 150 bicycles in each half-an-hour.)
+Demand = [400,100] # Inflow demand (bicycle/h), each value represents the demand of half an hour (Hence, right now this is a one hour scenario with 150 bicycles in each half-an-hour.)
 
 # In this case, we first assume bicycles are generated with a same interval (uniformly distributed) according to the demand.
 # Automatically generated scenario-related  parameters
@@ -30,6 +31,9 @@ print(Interval)
 Inflow_time = [] # time points that bicycles enter the bike lane
 for i in range(len(Demand)):
     Inflow_time.extend(list(range(0 + 1800 * i, 1800 * (i+1), Interval[i])))
+'''
+Stochasticity desired for the inflow (not equal interval)
+'''
 
 #%%
 # Agent class
@@ -38,7 +42,7 @@ class Bicycle(Agent):
         super().__init__(unique_id, model)
         # Fixed attributes
         self.unique_id = unique_id
-        self.length = 1.7 # Bicycle length, can be changed
+        self.length = 2 # Bicycle length, can be changed
         self.width = 0.8 # Bicycle width, can be changed
         self.desired_speed = 4.0 # should be randomized
         
@@ -108,13 +112,13 @@ class BikeLane(Model):
         
         # Initialize model variables
         self.time_step = 0
-        self.inflow_count = 0 # The number of bicycle in the vertical queue that will enter
+        self.inflow_count = 1 # The number of bicycle in the vertical queue that will enter
         self.n_agents = 0  # Current number of agents (bicycles) on the entire bike lane
         self.initial_coords = (0,1.0) # All bicycles enter the lane with a 0.5 m lateral distance to the right edge of the lane
         self.to_be_removed = [] # A list storing bicycles which finish the trip at the time step and to be removed
         
         # Data collection functions, collect positions of every bicycle at every step, namely trajectories
-        self.datacollector = DataCollector(agent_reporters={"Position": "pos"})
+        self.datacollector = DataCollector(agent_reporters={"Position": "pos", "Speed": "speed"})
     
     def deduct(self):
         self.n_agents = self.n_agents - 1
