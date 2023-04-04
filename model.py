@@ -22,7 +22,7 @@ import random
 #%%
 # Scenario-related  parameters
 random.seed(1) # Random seed for the scenario, note that for initial testings, it is better to use the same random seed so that the results are the same
-Demand = [400,100] # Inflow demand (bicycle/h), each value represents the demand of half an hour (Hence, right now this is a one hour scenario with 150 bicycles in each half-an-hour.)
+Demand = [750,100] # Inflow demand (bicycle/h), each value represents the demand of half an hour (Hence, right now this is a one hour scenario with 150 bicycles in each half-an-hour.)
 
 # In this case, we first assume bicycles are generated with a same interval (uniformly distributed) according to the demand.
 # Automatically generated scenario-related  parameters

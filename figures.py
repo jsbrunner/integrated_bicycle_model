@@ -43,7 +43,7 @@ def animate(frame):
     ax.plot([x_pos-1,x_pos,x_pos+1,x_pos,x_pos-1], [y_pos,y_pos+0.4,y_pos,y_pos-0.4,y_pos], color='black')
     
     # set the boundaries of the plot
-    ax.set_xlim([0,300])
+    ax.set_xlim([0,60])
     ax.set_ylim([0,3])
     # rename the y-tick labels
     ax.set_yticks([0, 0.5, 1, 1.5, 2, 2.5, 3], [-0.5, 0, 0.5, 1, 1.5, 2, 2.5])
@@ -61,13 +61,13 @@ def animate(frame):
     ax.set_ylabel('Cycle path width (m)')
     
 # matplotlib animation function
-ani = animation.FuncAnimation(fig, animate, agent_pos['Step'].unique(), interval=20)
+ani = animation.FuncAnimation(fig, animate, agent_pos['Step'].unique(), interval=60)
 fig.tight_layout(pad=2)
 
 plt.show()
 
 # save animation as gif into current directory
-# writer = animation.PillowWriter(fps=15, metadata=dict(artist='Me'), bitrate=1800)
-# ani.save('scatter.gif', writer=writer)
+# writer = animation.PillowWriter(fps=5, metadata=dict(artist='Me'), bitrate=1800)
+# ani.save('scatter_2.gif', writer=writer)
 
 
