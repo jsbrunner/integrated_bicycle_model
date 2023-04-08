@@ -45,6 +45,7 @@ def plot_simulation(agent_pos, save, filename): # more input relevant for differ
         # obtain their position
         x_pos = agent_pos_frame['Position_x']
         y_pos = agent_pos_frame['Position_y']
+        cur_speed = agent_pos_frame['Speed']
         # plot centers of cyclists in the simulation step
         ax.scatter(x_pos, y_pos, color='black', zorder=2)
         # plot diamond shaped size of cyclists

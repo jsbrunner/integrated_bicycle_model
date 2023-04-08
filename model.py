@@ -33,7 +33,7 @@ p_mean = 1 # m distance from edge
 p_sd = 0.2 # m st. deviation for distribution of p
 
 a_des = 1.4 # feasible relaxation time for acceleration
-b_max = 2 
+b_max = 1 # m/s**2 maximum braking force 
 ''' Relaxation time for braking -> look what the NDM needs '''
 
 dt = 1 # simulation time step length in seconds 
@@ -78,6 +78,7 @@ class Bicycle(Agent):
         self.act_acceleration = 0 # actual longitudinal acceleration/braking for the current time step
         self.act_lat_speed = 0 # actual lateral speed for the current time step
         self.next_coords = [0,0] # Attribute which stores the determined next coordinates
+        # self.leader = ...
     
     # Get functions
     def getPos(self):
@@ -87,19 +88,33 @@ class Bicycle(Agent):
     #...more functions may be necessary
     
     # Find neighbors or any individual agent which influence its own behavior (haven't been tested)
+    ''' Functions by Ying-Chuan
     def findLeaders(self):
         neighbors = self.model.space.get_neighbors(self.pos,self.look_ahead_dist,False)
         leaders = [l for l in neighbors if l.getPos()[0] > self.pos[0]]
-        return leaders
-    ''' Distinguish leaders in categories '''
+        return leaders '''
+
+    '''
     def findFollowers(self):
         neighbors = self.model.space.get_neighbors(self.pos,self.look_back_dist,False)
         followers = [l for l in neighbors if l.getPos()[0] < self.pos[0]]
         return followers
-    # ...
+    '''
+    def findCat1(self):
+        ...
     
-    # Define some more functions here to help determine the behavior
-    # ...
+    def findCat2(self):
+        ...
+
+    def findClosestLeader(self):
+        ...
+        # 1. get_neighbors as in functions before (but with longer distance than fov)
+        # 2. reduce list to the neighbors in front (and within fov)
+        # 3. loop over list and find the closest agent
+        # 4. return closest agent
+        # leaders = self.findLeaders()
+        # get closest leader
+        # print(leaders)
     
     # Calculate and update the attributes in the next step
     # Determine and update the next coordinates
@@ -113,15 +128,22 @@ class Bicycle(Agent):
     
     # Read surroundings and determine next coordinates after they all take actions (Note that the agent hasn't really moved when this function is called)
     def step(self):
+        ''' Separate these fct. according to the model levels '''
+        ...
+        self.leader = self.findClosestLeader()
+        # leader.getPos() 
+        # leader.getSpeed()
         self.calPos()
         self.calSpeed()
-        # ...
+        # calSafetyRegion
+        # calSize
+        
     
     # Take (physical) actions, this function would be called automatically after the step() function
     def advance(self):
         self.model.space.move_agent(self,self.next_coords) # update on the canvas
         self.pos = (self.next_coords[0],self.next_coords[1]) # update self attributes
-        #print("Bicycle ",self.unique_id,"move to x = ",self.pos[0]," y = ",self.pos[1] - 0.5)
+        # print("Bicycle ",self.unique_id,"move to x = ",self.pos[0]," y = ",self.pos[1] - 0.5)
         # clear bicycles which finish the trip
         if self.pos[0] >= 300:
             self.model.to_be_removed.append(self)
@@ -141,7 +163,7 @@ class BikeLane(Model):
         self.time_step = 0
         self.inflow_count = 1 # The number of bicycle in the vertical queue that will enter
         self.n_agents = 0  # Current number of agents (bicycles) on the entire bike lane
-        self.initial_coords = (0,1.0) # All bicycles enter the lane with a 0.5 m lateral distance to the right edge of the lane
+        self.initial_coords = (0,1) # bicycles enter 0.5 m from the path edge
         self.to_be_removed = [] # A list storing bicycles which finish the trip at the time step and to be removed
         
         # Data collection functions, collect positions of every bicycle at every step, namely trajectories
