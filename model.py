@@ -32,7 +32,7 @@ import random
 # Scenario-related  parameters (inputs may be changed when calling the library's functions)
 random.seed(4) # Random seed for the scenario, note that for initial testings, it is better to use the same random seed so that the results are the same
 # print(random.gauss(4, 2))
-Demand = [1500,100] # Inflow demand (bicycle/h), each value represents the demand of half an hour (Hence, right now this is a one hour scenario with 150 bicycles in each half-an-hour.)
+Demand = [2500,100] # Inflow demand (bicycle/h), each value represents the demand of half an hour (Hence, right now this is a one hour scenario with 150 bicycles in each half-an-hour.)
 
 v0_mean = 4 # m/s mean for distribution of desired speed
 v0_sd = 1 # m/s standard deviation of desired speed
