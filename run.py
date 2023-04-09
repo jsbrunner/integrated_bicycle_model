@@ -13,7 +13,12 @@ import pandas as pd
 model = BikeLane()
 for i in range(3600): # 3600 time steps
     model.step()
-
+    ''' PROGRESS BAR (optional)
+    if i % 360 == 0:
+        j = int(i/360)
+        progress = (j + 1) / (3600/360)
+        print(f"[{'=' * j}{' ' * (10 - j)*100}] {progress}%", end='\r')
+    '''
 #%%
 # Analyze data collection results
 agent_pos = model.datacollector.get_agent_vars_dataframe() # Pandas dataframe storing the position of all bicycles at every time step

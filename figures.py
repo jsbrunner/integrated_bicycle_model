@@ -20,7 +20,7 @@ def plot_simulation(agent_pos, save, filename): # more input relevant for differ
     plot_length = [0,100] # metres from the beginning to the end of the path (x_lim)
     
     # create figure
-    fig, ax = plt.subplots(figsize=(20,2))
+    fig, ax = plt.subplots(figsize=(20,3))
     
     # animation function
     def animate(frame):
@@ -30,12 +30,12 @@ def plot_simulation(agent_pos, save, filename): # more input relevant for differ
         
         # set the boundaries of the plot
         ax.set_xlim([plot_length[0],plot_length[1]])
-        ax.set_ylim([0,3])
+        ax.set_ylim([0,4])
         # rename the y-tick labels
-        ax.set_yticks([0, 0.5, 1, 1.5, 2, 2.5, 3], [-0.5, 0, 0.5, 1, 1.5, 2, 2.5])
+        ax.set_yticks([0, 0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4], [-0.5, 0, 0.5, 1, 1.5, 2, 2.5, 3, 3.5])
         # draw the edges of the cycle path
         ax.plot([0,300], [0.5,0.5], color='grey', zorder=1)
-        ax.plot([0,300], [2.5,2.5], color='grey', zorder=1)
+        ax.plot([0,300], [3.5,3.5], color='grey', zorder=1)
         # draw the keep-right position p
         ax.plot([0,300], [0.8,0.8], color='khaki', zorder=1)
         ax.plot([0,300], [1.2,1.2], color='khaki', zorder=1)
