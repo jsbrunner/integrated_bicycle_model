@@ -76,7 +76,7 @@ class Bicycle(Agent):
         self.zeta = ... # parameter for lateral stabilization with speed
         self.alpha = ... # scale length of safety region
         self.beta = ... # scale width of safety region
-        self.gamma = 0.8 # passing threshold
+        self.gamma = 0.95 # passing threshold
         self.lambd = ... # coefficient for consideration range (caution with the var name)
         # OPTIONAL
         self.phi = ... # length of necessary 'spatial gain'
@@ -155,7 +155,7 @@ class Bicycle(Agent):
     # Determine and update the next coordinates
     def calPos(self): # some more parameters to be added
         self.next_coords[0] = self.pos[0] + self.speed * dt # to be modified
-        self.next_coords[1] = self.p # self.pos[1] # to be modified
+        self.next_coords[1] = self.des_lat_pos # self.p # self.pos[1] # to be modified
     def calSpeed(self): # some more parameters to be added
         self.speed = self.v0 # to be modified
     
@@ -164,13 +164,37 @@ class Bicycle(Agent):
     
     # LEVEL 1: Desired lateral position
     def findLatPos(self): 
-        ...
         # find cat1 cyclists in consideration range
         self.findCat1()
         # print(self.cat1_cyclists)
-        if len(cat1_cyclists)==0:
+        if len(self.cat1_cyclists)==0:
             self.des_lat_pos = self.p
-        # else:
+            # print("no cat. 1 leader")
+        else:
+            # self.des_lat_pos = 2
+            # print(self.des_lat_pos)
+            # obtain envelope
+            envelope = [] # envelope is a list with coordinate points
+            blocked_space = [] # list the touples with lateral positions of cat1 cyclists
+            # obtain the 
+            # 
+            for i in self.cat1_cyclists:
+                # blocked_space.append([i, i.getPos()[1]-0.4, i.getPos()[1]+0.4]) # change 0.4 to the actual width including stabilization
+                blocked_space.append([i, i.getPos()[1]+0.4]) # left position 
+            
+            most_left = 0
+            for j in blocked_space:
+                if j[1] > most_left:
+                    most_left = j[1]
+            
+            self.des_lat_pos = (most_left + 3)/2
+            ''' Condition if there is enough space between the most left cyclist and the path edge '''
+            
+            # sort blocked_space tuples from left to right
+            # print(blocked_space)
+            # print(blocked_space.sort(key=lambda a: a[2]))
+            # if all space is blocked:
+                # look at where there is the most space
             
         
         # return/or determine 'des_lat_pos'
