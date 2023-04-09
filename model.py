@@ -20,6 +20,9 @@ import random
 # Therefore, on both sides of the bike lane, there are 0.5-m-wide extra lateral spaces which may be occupied by the bicycle handlebar area.
 
 #%%
+
+''' INPUTS TO THE MODEL ''' # write them as inputs to the model later
+
 # Scenario-related  parameters (inputs may be changed when calling the library's functions)
 random.seed(4) # Random seed for the scenario, note that for initial testings, it is better to use the same random seed so that the results are the same
 # print(random.gauss(4, 2))
@@ -53,6 +56,9 @@ for i in range(len(Demand)):
 #%%
 # Agent class
 class Bicycle(Agent):
+    
+    ''' INITIALIZATION AND VARIABLES '''
+    
     def __init__(self, unique_id, model):
         super().__init__(unique_id, model)
         
@@ -60,32 +66,53 @@ class Bicycle(Agent):
         self.unique_id = unique_id
         self.length = 2 # bicycle length
         self.width = 0.8 # bicycle width
-        self.desired_speed = random.gauss(v0_mean, v0_sd) # distribution of desired speed
-        self.des_position = random.uniform(p_mean-p_sd, p_mean+p_sd) # distribution of desired lateral position
-        self.des_acceleration = a_des # fixed value for the desired/feasible acceleration
-        self.max_braking = b_max # fixed value for the maximum deceleration/braking
-        self.max_lat_speed = v_lat_max # fixed value for the maximum lateral speed
+        self.v0 = random.gauss(v0_mean, v0_sd) # distribution of desired speed
+        self.p = random.uniform(p_mean-p_sd, p_mean+p_sd) # distribution of desired lateral position
+        self.a_des = a_des # fixed value for the desired/feasible acceleration
+        self.b_max = b_max # fixed value for the maximum deceleration/braking
+        self.omega_max = v_lat_max # fixed value for the maximum lateral speed
+        self.omega_des = ... # fixed value for the desired lateral speed
+        # further:
+        self.zeta = ... # parameter for lateral stabilization with speed
+        self.alpha = ... # scale length of safety region
+        self.beta = ... # scale width of safety region
+        self.gamma = 0.8 # passing threshold
+        self.lambd = ... # coefficient for consideration range (caution with the var name)
+        # OPTIONAL
+        self.phi = ... # length of necessary 'spatial gain'
+        self.eta = ... # coefficient for backward view
+        self.psi = ... # coefficient for far border of anticipation range
         
         # Dynamic attributes (these following values initialize the simulation)
-        self.pos = (0,self.des_position) # Current position, a "tuple" type position variable is required by Mesa and used in its other built-in function
-        self.speed = self.desired_speed # Current (actual) longitudinal speed
-        self.lat_distance_req = 0.2 # Lateral distance required, should be dynamic according to current speed
-        self.long_distance_req = 6 # Longitudinal distance required, dynamic to the current speed (together with the lat_distance_req, it forms the triangular and rectangular safety region)
-        self.look_ahead_dist = 50 # to be changed
-        # self.look_back_dist = 10 # to be changed
-        # ..., e.g., desired time gap, desired acceleration (distribution?), lateral speed, angle, etc.
-        # self.act_des_speed = 4 # would account for the perception of density/congestion downstream
-        self.act_acceleration = 0 # actual longitudinal acceleration/braking for the current time step
-        self.act_lat_speed = 0 # actual lateral speed for the current time step
+        self.pos = (0,self.p) # Current position, a "tuple" type position variable is required by Mesa and used in its other built-in function
+        self.speed = self.v0 # Current (actual) longitudinal speed
+        self.balance = 0 # additional width for stabilization (add value on both sides)
+        self.sr_width = 0.2 # width of the safety region
+        self.sr_length = 6 # length of the safety region
+        self.cr_length = 50 # consideration range length
+        self.ar_length = 0 # length of the anticipation range
+        self.bw_length = 10 # length of the backwards view
+        self.acc = 0 # actual longitudinal acceleration/braking for the current time step
+        self.v_lat = 0 # actual lateral speed for the current time step
         self.next_coords = [0,0] # Attribute which stores the determined next coordinates
-        # self.leader = ...
+        self.cat1_cyclists = [] # list of significantly slower cyclists in consideration range
+        self.cat2_cyclists = [] # list of slightly slower cyclists in consideration range
+        self.des_lat_pos = 0 # desired lateral position
+        self.trajectory = [] # list including the coordinates for the desired path (therefore also implicitly the moving angle)
+        self.leader = 0
+        self.v0_density = self.v0 # would account for the perception of density/congestion downstream
     
-    # Get functions
+    
+    ''' GET FUNCTIONS '''
+    
     def getPos(self):
         return [self.pos[0],self.pos[1]]
     def getSpeed(self):
         return self.speed
     #...more functions may be necessary
+    
+    
+    ''' AUXILIARY FUNCTIONS '''
     
     # Find neighbors or any individual agent which influence its own behavior (haven't been tested)
     ''' Functions by Ying-Chuan
@@ -100,12 +127,16 @@ class Bicycle(Agent):
         followers = [l for l in neighbors if l.getPos()[0] < self.pos[0]]
         return followers
     '''
+    
     def findCat1(self):
-        ...
+        neighbors = self.model.space.get_neighbors(self.pos,self.cr_length+10,False) # add 10 metres so that the circular radius does not matter anymore
+        leaders = [l for l in neighbors if l.getPos()[0] > self.pos[0] and l.getPos()[0] < (self.pos[0]+self.cr_length)] # obtain cyclists in consideration range
+        self.cat1_cyclists = [l for l in leaders if l.getSpeed() <= (self.gamma*self.v0)] # obtain cat1 cyclists
     
     def findCat2(self):
         ...
-
+    
+    '''
     def findClosestLeader(self):
         ...
         # 1. get_neighbors as in functions before (but with longer distance than fov)
@@ -115,26 +146,58 @@ class Bicycle(Agent):
         # leaders = self.findLeaders()
         # get closest leader
         # print(leaders)
+    '''    
+    
+    
+    ''' UPDATE FUNCTIONS '''
     
     # Calculate and update the attributes in the next step
     # Determine and update the next coordinates
     def calPos(self): # some more parameters to be added
         self.next_coords[0] = self.pos[0] + self.speed * dt # to be modified
-        self.next_coords[1] = self.des_position # self.pos[1] # to be modified
+        self.next_coords[1] = self.p # self.pos[1] # to be modified
     def calSpeed(self): # some more parameters to be added
-        self.speed = self.desired_speed # to be modified
+        self.speed = self.v0 # to be modified
     
-    # ...
+    
+    ''' LEVEL FUNCTIONS '''
+    
+    # LEVEL 1: Desired lateral position
+    def findLatPos(self): 
+        ...
+        # find cat1 cyclists in consideration range
+        self.findCat1()
+        # print(self.cat1_cyclists)
+        if len(cat1_cyclists)==0:
+            self.des_lat_pos = self.p
+        # else:
+            
+        
+        # return/or determine 'des_lat_pos'
+        
+    # LEVEL 2: Moving angle and leader
+    def findTraj(self):  
+        ...
+    
+    # LEVEL 3: NDM
+    def findAcc(self): 
+        ...
+    
+    
+    ''' STEP AND ADVANCE FUNCTIONS '''
     
     # Read surroundings and determine next coordinates after they all take actions (Note that the agent hasn't really moved when this function is called)
     def step(self):
-        ''' Separate these fct. according to the model levels '''
-        ...
-        self.leader = self.findClosestLeader()
-        # leader.getPos() 
-        # leader.getSpeed()
+        ''' CALL LEVEL FUNCTIONS '''
+        self.findLatPos() # model level 1
+        # self.findTraj() # moving angle and identify leader, level 2
+        # self.findAcc() # level 3
+        
+        ''' CALL UPDATE FUNCTIONS '''
         self.calPos()
         self.calSpeed()
+        # update regions:
+        # calFOV
         # calSafetyRegion
         # calSize
         
@@ -156,8 +219,7 @@ class BikeLane(Model):
         self.schedule = SimultaneousActivation(self)
         
         # Create the canvas, which is a 300-m-long bike lane, 2 m wide with 0.5 m extra lateral spaces on both sides
-        self.space = ContinuousSpace(300.1, 3, torus=True)
-        ''' Changed the torus=False here '''
+        self.space = ContinuousSpace(300.1, 3, torus=True) # Changed the torus=False here: otherwise, there will be an error because agents are 'out of bounds'
         
         # Initialize model variables
         self.time_step = 0
