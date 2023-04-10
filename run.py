@@ -10,8 +10,9 @@ import pandas as pd
 
 #%%
 # Run model
+duration = 300 # seconds of simulation time (choose 5 mins for faster testing)
 model = BikeLane()
-for i in range(3600): # 3600 time steps
+for i in range(duration): # simulation time steps
     model.step()
     ''' PROGRESS BAR (optional)
     if i % 360 == 0:

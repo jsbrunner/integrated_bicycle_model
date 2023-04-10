@@ -11,6 +11,7 @@ import matplotlib.animation as animation
 
 #%%
 
+# plot_simulation(agent_pos, save=False, filename='Test.gif')
 # plot_simulation(agent_pos, save=False, filename="test")
 # run standard plot
 def plot_simulation(agent_pos, save, filename): # more input relevant for different plots

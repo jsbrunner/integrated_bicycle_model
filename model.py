@@ -32,7 +32,7 @@ import random
 # Scenario-related  parameters (inputs may be changed when calling the library's functions)
 random.seed(4) # Random seed for the scenario, note that for initial testings, it is better to use the same random seed so that the results are the same
 # print(random.gauss(4, 2))
-Demand = [2500,100] # Inflow demand (bicycle/h), each value represents the demand of half an hour (Hence, right now this is a one hour scenario with 150 bicycles in each half-an-hour.)
+Demand = [150,75] # Inflow demand (bicycle/h), each value represents the demand of half an hour (Hence, right now this is a one hour scenario with 150 bicycles in each half-an-hour.)
 
 v0_mean = 4 # m/s mean for distribution of desired speed
 v0_sd = 1 # m/s standard deviation of desired speed
@@ -51,11 +51,11 @@ path_width = 4 # path width in m (-0.5 m on each side)
 
 # In this case, we first assume bicycles are generated with a same interval (uniformly distributed) according to the demand.
 # Automatically generated scenario-related  parameters
-Interval = [int(3600 / Demand[i]) for i in range(len(Demand))] # Time interval in each half-an-hour
+Interval = [int(300 / Demand[i]) for i in range(len(Demand))] # Time interval in each half-an-hour
 # print(Interval)
 Inflow_time = [] # time points that bicycles enter the bike lane
 for i in range(len(Demand)):
-    Inflow_time.extend(list(range(0 + 1800 * i, 1800 * (i+1), Interval[i])))
+    Inflow_time.extend(list(range(0 + 150 * i, 150 * (i+1), Interval[i])))
 ''' Stochasticity desired for the inflow (not equal interval) '''
 
 ''' make a variable for the time step length, in case we want to change it later '''
@@ -81,8 +81,8 @@ class Bicycle(Agent):
         self.p = random.uniform(p_mean-p_sd, p_mean+p_sd) # distribution of desired lateral position
         self.a_des = a_des # fixed value for the desired/feasible acceleration
         self.b_max = b_max # fixed value for the maximum deceleration/braking
-        self.omega_max = v_lat_max # fixed value for the maximum lateral speed
-        self.omega_des = ... # fixed value for the desired lateral speed
+        self.omega_max = 1.0 # m/s fixed value for the maximum lateral speed
+        self.omega_des = 0.2 # m/s fixed value for the desired lateral speed
         # further:
         self.zeta = ... # parameter for lateral stabilization with speed
         self.alpha = ... # scale length of safety region
@@ -242,14 +242,34 @@ class Bicycle(Agent):
                     if blocked_space_indiv[i][0].getPos()[0] > furthest_agent_pos:
                         furthest_agent_pos = blocked_space_indiv[i][0].getPos()[0]
                         furthest_agent = i    
-                del blocked_space_indiv[i]
-                
+                del blocked_space_indiv[furthest_agent]
+                # if there is one cyclist blocking the whole path and you delete him it is strange what happens
 
     ''' LEVEL 2: Moving angle and leader '''
     def findTraj(self):  
-        ...
+        
+        # handle case with no slower cyclists (it is only the remaining cyclists )
+        if len(self.cat1_cyclists)==0:
+            req_lat_move = self.des_lat_pos - self.getPos()[1] # desired position minus actual position -> gives direction left or right directly
+            if abs(req_lat_move) < self.omega_des:
+                self.v_lat = req_lat_move
+            else:
+                if req_lat_move < 0: # handle whether to move right or left
+                    self.v_lat = -self.omega_des
+                else:
+                    self.v_lat = self.omega_des
+        
+        else: # there are slower cyclists remaining
+            
+            
+        # find dominant cat.1 cyclists 
+        ## (cyclists between current position (minus half the size) and the desired position)
+        # project cyclists to passing point
+        # find relevant moving angle
+        # check, if angle is feasible with the lateral speed (else, set it to the lateral speed)
+        # 
     
-    ''' LEVEL 3: NDM '''
+    ''' LEVEL 3: Acceleration according to NDM '''
     def findAcc(self): 
         ...
     
@@ -272,9 +292,10 @@ class Bicycle(Agent):
         self.calPos()
         self.calSpeed()
         # update regions:
-        # calFOV
-        # calSafetyRegion
-        # calSize
+        # self.calSize()
+        # self.calFOV()
+        # self.calSafetyRegion()
+        # 
         
     
     # Take (physical) actions, this function would be called automatically after the step() function
