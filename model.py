@@ -32,7 +32,7 @@ import random
 # Scenario-related  parameters (inputs may be changed when calling the library's functions)
 random.seed(4) # Random seed for the scenario, note that for initial testings, it is better to use the same random seed so that the results are the same
 # print(random.gauss(4, 2))
-Demand = [150,75] # Inflow demand (bicycle/h), each value represents the demand of half an hour (Hence, right now this is a one hour scenario with 150 bicycles in each half-an-hour.)
+Demand = [300,75] # Inflow demand (bicycle/h), each value represents the demand of half an hour (Hence, right now this is a one hour scenario with 150 bicycles in each half-an-hour.)
 
 v0_mean = 4 # m/s mean for distribution of desired speed
 v0_sd = 1 # m/s standard deviation of desired speed
@@ -108,6 +108,7 @@ class Bicycle(Agent):
         self.next_coords = [0,0] # Attribute which stores the determined next coordinates
         self.cat1_cyclists = [] # list of significantly slower cyclists in consideration range
         self.cat2_cyclists = [] # list of slightly slower cyclists in consideration range
+        self.blocked_space_indiv = [] # auxiliary list used across level 1 and 2
         self.des_lat_pos = 0 # desired lateral position
         self.trajectory = [] # list including the coordinates for the desired path (therefore also implicitly the moving angle)
         self.leader = 0
@@ -201,35 +202,37 @@ class Bicycle(Agent):
             self.des_lat_pos = 2 # random.uniform(1,3)
             # print(self.des_lat_pos)
             # obtain envelope, idea is maybe outdated
-            blocked_space_indiv = [] # list the touples with lateral positions of cat1 cyclists
+            self.blocked_space_indiv = [] # list the touples with lateral positions of cat1 cyclists
             unblocked_space = []
             
             for i in self.cat1_cyclists:
-                blocked_space_indiv.append((i, i.getPos()[1]-0.4, i.getPos()[1]+0.4)) # change 0.4 to the actual width including stabilization
+                self.blocked_space_indiv.append((i, i.getPos()[1]-0.4, i.getPos()[1]+0.4)) # change 0.4 to the actual width including stabilization
                 
-            # print('\nunsorted\n', blocked_space_indiv)
-            blocked_space_indiv.sort(key=lambda a: a[2], reverse=True) # sorted cyclists from left to right
-            # print('\nsorted\n', blocked_space_indiv)
+            # print('\nunsorted\n', self.blocked_space_indiv)
+            self.blocked_space_indiv.sort(key=lambda a: a[2], reverse=True) # sorted cyclists from left to right
+            # print('\nsorted\n', self.blocked_space_indiv)
             
             gap_found = False # boolean to terminate the following loop
             
             while gap_found==False:
                 
                 # find gaps between cyclists
-                for i in range(len(blocked_space_indiv)):
+                for i in range(len(self.blocked_space_indiv)):
                     if i==0: # if it is the first cyclist from the left
-                        unblocked_space.append([path_width, blocked_space_indiv[i][2], round(path_width-blocked_space_indiv[i][2],2)])
-                    elif blocked_space_indiv[i-1][1] <= blocked_space_indiv[i][2]: # if the projection overlaps, there is not an additional unblocked space
+                        unblocked_space.append([path_width, self.blocked_space_indiv[i][2], round(path_width-self.blocked_space_indiv[i][2],2)])
+                    elif self.blocked_space_indiv[i-1][1] <= self.blocked_space_indiv[i][2]: # if the projection overlaps, there is not an additional unblocked space
                         continue
                     else: # add an additional unblocked space
-                        unblocked_space.append([blocked_space_indiv[i-1][1], blocked_space_indiv[i][2], round(blocked_space_indiv[i-1][1]-blocked_space_indiv[i][2],2)])
-                unblocked_space.append([blocked_space_indiv[-1][1], 0, round(blocked_space_indiv[-1][1],2)]) # add a final gap towards the right edge of the path
+                        unblocked_space.append([self.blocked_space_indiv[i-1][1], self.blocked_space_indiv[i][2], round(self.blocked_space_indiv[i-1][1]-self.blocked_space_indiv[i][2],2)])
+                unblocked_space.append([self.blocked_space_indiv[-1][1], 0, round(self.blocked_space_indiv[-1][1],2)]) # add a final gap towards the right edge of the path
                 # print('\ngaps\n', unblocked_space)
                 
                 # check if there is a gap big enough to fit (left to right priority, list is already sorted alike)
                 for i in unblocked_space:
                     if i[2] >= self.width+0.2: # change 0.2 to the correct width including safety region later
                         self.des_lat_pos = i[1]+0.8 # (i[0]+i[1])/2 # desired position is the middle of the gap (could be a better formula, but for now it is ok)
+                        ''' ONE COULD MAKE AN AUXILIARY FUNCTION FOR THIS, BC THE POSITION IN THE GAP IS USED AGAIN IN LVL 2
+                        MAKE SURE THAT THE P VALUE IS USED HERE AS WELL TO BRING HETEROGENEITY '''
                         gap_found = True
                         break
                 if gap_found==True:
@@ -238,19 +241,20 @@ class Bicycle(Agent):
                 # remove cyclist the furthest downstream if gap is not found
                 furthest_agent_pos = 0
                 furthest_agent = ...
-                for i in range(len(blocked_space_indiv)):
-                    if blocked_space_indiv[i][0].getPos()[0] > furthest_agent_pos:
-                        furthest_agent_pos = blocked_space_indiv[i][0].getPos()[0]
+                for i in range(len(self.blocked_space_indiv)):
+                    if self.blocked_space_indiv[i][0].getPos()[0] > furthest_agent_pos:
+                        furthest_agent_pos = self.blocked_space_indiv[i][0].getPos()[0]
                         furthest_agent = i    
-                del blocked_space_indiv[furthest_agent]
+                del self.blocked_space_indiv[furthest_agent]
                 # if there is one cyclist blocking the whole path and you delete him it is strange what happens
+
 
     ''' LEVEL 2: Moving angle and leader '''
     def findTraj(self):  
         
-        # handle case with no slower cyclists (it is only the remaining cyclists )
-        if len(self.cat1_cyclists)==0:
-            req_lat_move = self.des_lat_pos - self.getPos()[1] # desired position minus actual position -> gives direction left or right directly
+        req_lat_move = self.des_lat_pos - self.getPos()[1] # desired position minus actual position -> gives direction left or right directly
+        
+        if len(self.cat1_cyclists)==0: # handle case with no slower cyclists (it is only the remaining cyclists )
             if abs(req_lat_move) < self.omega_des:
                 self.v_lat = req_lat_move
             else:
@@ -259,15 +263,42 @@ class Bicycle(Agent):
                 else:
                     self.v_lat = self.omega_des
         
-        else: # there are slower cyclists remaining
+        else: # case with slower cyclists remaining; self.blocked_space_indiv[][0]
+            obstr_cyclists = [] # potentially obstructing from reaching desired position
+            remove_indices = []
+            for i in range(len(self.blocked_space_indiv)):
+                obstr_cyclists.append(self.blocked_space_indiv[i][0]) # append cyclist object from the remaining cat. 1 cyclists
+            for i in range(len(obstr_cyclists)): # find non-obstructing cyclists
+                if req_lat_move < 0:
+                    if obstr_cyclists[i].getPos()[1] > self.getPos()[1] or obstr_cyclists[i].getPos()[1] < self.des_lat_pos:
+                        #remove non-dominant cyclist
+                        remove_indices.append(i)
+                else:
+                    if obstr_cyclists[i].getPos()[1] < self.getPos()[1] or obstr_cyclists[i].getPos()[1] > self.des_lat_pos:
+                        remove_indices.append(i)
+            
+            # remove non-dominant cycists
+            # print('\n\nbefore removal: ',dominant_cyclists)
+            for i in sorted(remove_indices, reverse=True):
+                del obstr_cyclists[i]
+            # print('\nafter removal: ', len(dominant_cyclists))
+            
+            # if there is no obstructing cyclist, do the same as above and go the desired lateral speed towards the desired position
             
             
-        # find dominant cat.1 cyclists 
-        ## (cyclists between current position (minus half the size) and the desired position)
-        # project cyclists to passing point
-        # find relevant moving angle
-        # check, if angle is feasible with the lateral speed (else, set it to the lateral speed)
-        # 
+            # if there are obstructing cyclists, project these cyclists to when you would pass
+            
+        
+            # obtain the angle to pass each of them (by determining the position when passing)
+            
+            
+            # the strongest angle in absolute values is the one which counts
+            
+            
+            # check if the strongest angle is larger than the maximum lateral speed and reduce it if necessary
+        
+                        
+           
     
     ''' LEVEL 3: Acceleration according to NDM '''
     def findAcc(self): 
@@ -285,7 +316,7 @@ class Bicycle(Agent):
     def step(self):
         ''' CALL LEVEL FUNCTIONS '''
         self.findLatPos() # model level 1
-        # self.findTraj() # moving angle and identify leader, level 2
+        self.findTraj() # moving angle and identify leader, level 2
         # self.findAcc() # level 3
         
         ''' CALL UPDATE FUNCTIONS '''
