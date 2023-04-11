@@ -21,5 +21,9 @@ angle2 = math.atan2(y2, x)
 
 print(angle, angle2)
 
+y_calc = x * math.tan(angle2)
+
+print(y_calc)
+
 
 
