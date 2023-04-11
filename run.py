@@ -38,5 +38,5 @@ agent_pos.to_csv('simulation_data.csv', sep=';')
 #%%
 # plot things
 
-plot_simulation(agent_pos, save=False, filename="scatter_5")
+plot_simulation(agent_pos, save=True, filename="test_10.04.23")
 
