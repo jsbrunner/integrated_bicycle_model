@@ -7,6 +7,7 @@ from mesa.time import SimultaneousActivation
 from mesa.space import ContinuousSpace
 from mesa.datacollection import DataCollector
 import random
+import math
 #%%
 
 ''' Instructions Ying-Chuan '''
@@ -277,29 +278,67 @@ class Bicycle(Agent):
                     if obstr_cyclists[i].getPos()[1] < self.getPos()[1] or obstr_cyclists[i].getPos()[1] > self.des_lat_pos:
                         remove_indices.append(i)
             
+            # print('\n\nCat. 1 cyclists: ', self.cat1_cyclists)
+            # print('\nSpace blockers before removal: ', obstr_cyclists)
             # remove non-dominant cycists
-            # print('\n\nbefore removal: ',dominant_cyclists)
             for i in sorted(remove_indices, reverse=True):
                 del obstr_cyclists[i]
-            # print('\nafter removal: ', len(dominant_cyclists))
+            # print('\nSpace blockers after removal: ', obstr_cyclists)
             
-            # if there is no obstructing cyclist, do the same as above and go the desired lateral speed towards the desired position
-            
-            
-            # if there are obstructing cyclists, project these cyclists to when you would pass
-            
-        
-            # obtain the angle to pass each of them (by determining the position when passing)
-            
-            
-            # the strongest angle in absolute values is the one which counts
-            
-            
-            # check if the strongest angle is larger than the maximum lateral speed and reduce it if necessary
-        
+            # if there is no obstructing cyclist, do the same as above and go towards the desired position at the end of the CR
+            if len(obstr_cyclists)==0: # handle case with no obstructing cyclists (it is only the remaining cyclists )
+                if abs(req_lat_move) < self.omega_des:
+                    self.v_lat = req_lat_move
+                else:
+                    if req_lat_move < 0: # handle whether to move right or left
+                        self.v_lat = -self.omega_des
+                    else:
+                        self.v_lat = self.omega_des
                         
-           
-    
+            else: # if there are obstructing cyclists, project these cyclists to when you would pass
+                # obtain the distance until you pass the obstructing cyclists
+                # work with obstr_cyclist list and add distance to pass
+                # the calculation now is a bit more advanced
+                for i in range(len(obstr_cyclists)):
+                    # calc dist to passing point
+                    p1 = self.getPos()[0]
+                    v1 = self.getSpeed()
+                    p2 = obstr_cyclists[i].getPos()[0]
+                    v2 = obstr_cyclists[i].getSpeed()
+                    time_to_pass = (p2-p1)/(v1-v2)
+                    dist_to_pass = v1*time_to_pass
+                    
+                    # calc lateral passing point
+                    lat_passing_point = 0
+                    if req_lat_move < 0:
+                        lat_passing_point = obstr_cyclists[i].getPos()[1]-1 # one meter to the right of the center
+                    else:
+                        lat_passing_point = obstr_cyclists[i].getPos()[1]+1 # one meter to the right of the center
+                    
+                    # calc moving angle (which angle is the absolute steepest)
+                    angle_temp = math.atan2((lat_passing_point-self.getPos()[1]), dist_to_pass)
+                    obstr_cyclists[i] = [obstr_cyclists[i], abs(angle_temp), dist_to_pass, lat_passing_point-self.getPos()[1]]
+                
+                print('\n', obstr_cyclists)
+                # go for the steepest angle (which angle is the absolute steepest)
+                relevant_cyc_index = 0
+                steepest_angle_temp = 0
+                for i in range(len(obstr_cyclists)):
+                    if obstr_cyclists[i][1] > steepest_angle_temp:
+                        steepest_angle_temp = obstr_cyclists[i][1]
+                        relevant_cyc_index = i
+
+                # check if the angle is feasible with the maximum lateral speed
+                max_angle_cur = abs(math.atan2(self.omega_max, self.getSpeed()))  # maximum angle at current speed would be
+                print(steepest_angle_temp)
+                print(max_angle_cur)
+                # go the maximum lateral speed or the required speed 
+                
+        # find the leader (with basically the easy formula)
+        # project all cat. 1 and cat. 2 cyclists one step further
+        # obtain closest of those inside the shape
+                
+            
     ''' LEVEL 3: Acceleration according to NDM '''
     def findAcc(self): 
         ...
@@ -385,7 +424,3 @@ class BikeLane(Model):
         self.datacollector.collect(self)
 
 #%%
-
-
-
-

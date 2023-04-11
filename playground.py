@@ -9,16 +9,17 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
 import mesa
-# import sklearn
+import math
 
-x = pd.DataFrame(index=['a','b'], columns=['d','c'])
-print(x)
+x = 20
+y = 1.5
+y2 = -2
 
-plt.plot((1,2),(3,4))
+angle = math.atan2(y, x)
 
-a = np.array([1,2,3,4])
-b = a*2.0
-plt.scatter(a, b)
-# plt.plot(args, kwargs)
+angle2 = math.atan2(y2, x)
+
+print(angle, angle2)
+
 
 
