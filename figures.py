@@ -17,7 +17,7 @@ import matplotlib.animation as animation
 def plot_simulation(agent_pos, save, filename): # more input relevant for different plots
     
     # Params for figure
-    anim_interval = 200 # ms to update (e.g. 200 is 5 fps)
+    anim_interval = 2000 # ms to update (e.g. 200 is 5 fps)
     plot_length = [0,100] # metres from the beginning to the end of the path (x_lim)
     
     # create figure
@@ -67,7 +67,7 @@ def plot_simulation(agent_pos, save, filename): # more input relevant for differ
     
     # save animation as gif into current directory
     if save:
-        writer = animation.PillowWriter(fps=5, metadata=dict(artist='Me'), bitrate=1000)
+        writer = animation.PillowWriter(fps=0.5, metadata=dict(artist='Me'), bitrate=1000)
         ani.save("{}.gif".format(filename), writer=writer)
 
     fig.show()

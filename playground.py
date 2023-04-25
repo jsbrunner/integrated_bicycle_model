@@ -25,5 +25,14 @@ y_calc = x * math.tan(angle2)
 
 print(y_calc)
 
+'''
+x=[1,2,3,4,5,6,7,8,9]
+y=[2,3,6,4,9,6,7,8,1]
+
+plt.plot(x,y, color='darksalmon', linewidth=3)
+plt.show
+plt.savefig('testfile.png', dpi=400)
+'''
+
 
 
