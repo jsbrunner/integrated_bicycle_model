@@ -34,9 +34,9 @@ import math
 # Scenario-related  parameters (inputs may be changed when calling the library's functions)
 random.seed(4) # Random seed for the scenario, note that for initial testings, it is better to use the same random seed so that the results are the same
 # print(random.gauss(4, 2))
-Demand = [150,75] # Inflow demand (bicycle/h), each value represents the demand of half an hour (Hence, right now this is a one hour scenario with 150 bicycles in each half-an-hour.)
+Demand = [300,75] # Inflow demand (bicycle/h), each value represents the demand of half an hour (Hence, right now this is a one hour scenario with 150 bicycles in each half-an-hour.)
 
-v0_mean = 6 # m/s mean for distribution of desired speed
+v0_mean = 5 # m/s mean for distribution of desired speed
 v0_sd = 2 # m/s standard deviation of desired speed
 # v_lat_max = 0.5 # m/s maximum lateral speed
 
@@ -89,7 +89,7 @@ class Bicycle(Agent):
         self.zeta = 0.4  # parameter for lateral stabilization with speed (maximum add. width for stabilization in m)
         self.alpha = 1  # scale length of safety region
         self.beta = 0.05  # scale width of safety region
-        self.gamma = 0.90  # passing threshold
+        self.gamma = 0.85  # passing threshold
         self.phi = 4 # coefficient for consideration range (caution with the var name)
         # OPTIONAL
         # self.phi = ...  # length of necessary 'spatial gain'
@@ -104,18 +104,20 @@ class Bicycle(Agent):
         self.sr_length = 10  # length of the safety region
         self.cr_length = 20  # consideration range length
         self.ar_length = 0  # length of the anticipation range
-        self.bw_length = 10  # length of the backwards view
+        self.bw_length = 20  # length of the backwards view
         self.acceleration = 0  # actual longitudinal acceleration/braking for the current time step
         self.v_lat = 0  # actual lateral speed for the current time step
         self.next_coords = [0,0]  # Attribute which stores the determined next coordinates
         self.next_speed = 0
         self.cat1_cyclists = []  # list of significantly slower cyclists in consideration range
         self.cat12_cyclists = []  # list of slightly slower cyclists in consideration range
+        self.cat3_behind = []  # list of faster cyclists in the backward view
         self.blocked_space_indiv = []  # auxiliary list used across level 1 and 2
         self.des_lat_pos = 0  # desired lateral position
         self.trajectory = []  # list including the coordinates for the desired path (therefore also implicitly the moving angle)
         self.leader = 0  # variable to save leading cyclist's object id
         self.v0_density = self.v0  # would account for the perception of density/congestion downstream
+        self.cut_off_flag = False  # True if cyclist would cut-off somebody else
     
     
     ''' 
@@ -161,6 +163,10 @@ class Bicycle(Agent):
         leaders = [l for l in neighbors if l.getPos()[0] > self.pos[0] and l.getPos()[0] < (self.pos[0]+self.cr_length)] # obtain cyclists in consideration range
         self.cat12_cyclists = [l for l in leaders if l.getSpeed() <= (self.v0)] # obtain cat1 and cat2 cyclists
     
+    def findCat3Behind(self):  # not really cat 3 but the cyclists that are currently faster than you are
+        neighbors = self.model.space.get_neighbors(self.pos,self.bw_length+10,False)
+        followers = [l for l in neighbors if l.getPos()[0] < self.pos[0] and l.getPos()[0] > (self.pos[0]-self.bw_length)] # obtain cyclists in backward view
+        self.cat3_behind = [l for l in followers if l.getSpeed() > (self.getSpeed())] # obtain cat3 cyclists
     
     ''' 
     ************************
@@ -371,8 +377,25 @@ class Bicycle(Agent):
                     else:
                         self.v_lat = (self.getSpeed()*math.tan(steepest_angle_temp))
                 # print('V_lat: ', self.v_lat)
-                                    
-                
+        
+        ''' Optional "look-back" module '''                         
+        # look back and abort lateral movement if faster cyclists are present
+        self.findCat3Behind()
+        # restrict to v_lat distance and project forward
+        proj_Cat3Behind = []  # projection of such cyclists
+        if self.v_lat <= 0:
+            proj_Cat3Behind = [l for l in self.cat3_behind if l.getPos()[1] <= self.pos[1] and l.getPos()[1] > (self.pos[1]-self.v_lat-1)]
+        else:
+            proj_Cat3Behind = [l for l in self.cat3_behind if l.getPos()[1] > self.pos[1] and l.getPos()[1] < (self.pos[1]+self.v_lat+1)]
+        # sort for closest cyclist
+        ''' needs more thoughts on how to work '''
+        
+        if len(proj_Cat3Behind) != 0:
+            self.v_lat = 0
+            self.cut_off_flag = True
+        
+        
+        ''' Find the leader '''
         # find the leader
         self.findCat12() # get slower cyclists in front
         # print(self.cat12_cyclists)
@@ -391,7 +414,11 @@ class Bicycle(Agent):
             for i in obstr_cyclists:
                 del_from_pot_lead.append(i[0])
             # print('Obstructing: ', del_from_pot_lead)
-            potential_leaders = list(set(self.cat12_cyclists) - set(del_from_pot_lead)) 
+            
+            if self.cut_off_flag == False:
+                potential_leaders = list(set(self.cat12_cyclists) - set(del_from_pot_lead))
+            else:
+                potential_leaders = self.cat12_cyclists
             # print('Potential leaders: ', potential_leaders)
             
             # potential_leaders = self.cat12_cyclists
@@ -400,7 +427,7 @@ class Bicycle(Agent):
                 potential_leaders = [i for i in potential_leaders if i.getPos()[1] >= self.getPos()[1]-1 and i.getPos()[1] <= self.des_lat_pos+1]
             if self.v_lat < 0:
                 potential_leaders = [i for i in potential_leaders if i.getPos()[1] <= self.getPos()[1]+1 and i.getPos()[1] >= self.des_lat_pos-1]
-            ''' cut off cyclists in front but behind the moving angle '''
+            ''' cut off cyclists in front but behind the moving angle (latter needs to be implemented) '''
             
             if len(potential_leaders) != 0:
                 # leaders = [l for l in neighbors if l.getPos()[0] > self.pos[0] and l.getPos()[0] < (self.pos[0]+self.cr_length)]
@@ -454,6 +481,7 @@ class Bicycle(Agent):
             # calculate first deceleration part: matching the speed of the slower leader
             if delta_v > 0:
                 dec1 = min((delta_v**2)/(2*(headway_s-self.length)), b_max) # necessary deceleration to match speed
+                ''' maybe adapt this part here so that the aim is to match the safety distance length '''
             print('dec1: ', dec1)
             # calculate second deceleration part: fall back to maintain the desired safety distance
             if delta_v <= 1 and headway_s <= safety_dist_d: 
