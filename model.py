@@ -1,5 +1,10 @@
 # -*- coding: utf-8 -*-
 
+'''
+**************************************************
+*** MODEL FILE (DO NOT CHANGE PARAMETERS HERE) ***
+**************************************************
+'''
 
 #%%
 from mesa import Agent, Model
@@ -8,6 +13,8 @@ from mesa.space import ContinuousSpace
 from mesa.datacollection import DataCollector
 import random
 import math
+import run
+
 #%%
 
 ''' Instructions Ying-Chuan '''
@@ -29,41 +36,19 @@ import math
 ********************
 ''' 
 
-''' write them as inputs to the model later '''
-
-# Scenario-related  parameters (inputs may be changed when calling the library's functions)
-random.seed(4) # Random seed for the scenario, note that for initial testings, it is better to use the same random seed so that the results are the same
-# print(random.gauss(4, 2))
-Demand = [300,75] # Inflow demand (bicycle/h), each value represents the demand of half an hour (Hence, right now this is a one hour scenario with 150 bicycles in each half-an-hour.)
-
-v0_mean = 5 # m/s mean for distribution of desired speed
-v0_sd = 2 # m/s standard deviation of desired speed
-# v_lat_max = 0.5 # m/s maximum lateral speed
-
-p_mean = 1 # m distance from edge
-p_sd = 0.2 # m st. deviation for distribution of p
-
-a_des = 2 # desired acceleration in m/s**2 # feasible relaxation time for acceleration
-b_max = 2 # m/s**2 maximum braking force (positive value)
-''' Relaxation time for braking -> look what the NDM needs '''
-
-dt = 1 # simulation time step length in seconds | do not change because other functions would not work by now
-
-path_width = 4 # path width in m (-0.5 m on each side)
 
 # In this case, we first assume bicycles are generated with a same interval (uniformly distributed) according to the demand.
-# Automatically generated scenario-related  parameters
-Interval = [int(300 / Demand[i]) for i in range(len(Demand))] # Time interval in each half-an-hour
+Interval = [int(run.time_steps*0.5 / run.Demand[i]) for i in range(len(run.Demand))] # Time interval in both of the two slots
 # print(Interval)
-Inflow_time = [] # time points that bicycles enter the bike lane
-for i in range(len(Demand)):
-    Inflow_time.extend(list(range(0 + 150 * i, 150 * (i+1), Interval[i])))
-''' Stochasticity desired for the inflow (not equal interval) '''
+Inflow_step = [] # time points that bicycles enter the bike lane
+for i in range(len(run.Demand)):
+    Inflow_step.extend(list(range(0 + int(run.time_steps/2) * i, int(run.time_steps/2) * (i+1), Interval[i])))
+# print(Inflow_step)
+''' Stochasticity desired for the inflow (not always equal interval) '''
 
-''' maybe make a variable for the time step length, in case we want to change it later '''
 
-#%%
-# Agent class
+#%% Agent class
+
 class Bicycle(Agent):
     
     ''' 
@@ -79,10 +64,10 @@ class Bicycle(Agent):
         self.unique_id = unique_id
         self.length = 2  # bicycle length
         self.width = 0.8  # bicycle width
-        self.v0 = random.uniform(v0_mean-v0_sd, v0_mean+v0_sd)  # random.gauss(v0_mean, v0_sd)  # distribution of desired speed
-        self.p = random.uniform(p_mean-p_sd, p_mean+p_sd)  # distribution of desired lateral position
-        self.a_des = a_des  # fixed value for the desired/feasible acceleration
-        self.b_max = b_max  # fixed value for the maximum deceleration/braking
+        self.v0 = random.uniform(run.v0_mean - run.v0_sd, run.v0_mean + run.v0_sd)  # distribution of desired speed
+        self.p = random.uniform(run.p_mean - run.p_sd, run.p_mean + run.p_sd)  # distribution of desired lateral position
+        self.a_des = 2  # feasible relaxation time for acceleration
+        self.b_max = 2  # m/s**2 maximum braking force (positive value)
         self.omega_max = 0.5  # m/s fixed value for the maximum lateral speed
         self.omega_des = 0.2  # m/s fixed value for the desired lateral speed
         # further:
@@ -90,7 +75,7 @@ class Bicycle(Agent):
         self.alpha = 1  # scale length of safety region
         self.beta = 0.05  # scale width of safety region
         self.gamma = 0.85  # passing threshold
-        self.phi = 4 # coefficient for consideration range (caution with the var name)
+        self.phi = 3 # coefficient for consideration range (caution with the var name)
         # OPTIONAL
         # self.phi = ...  # length of necessary 'spatial gain'
         self.eta = ...  # coefficient for backward view
@@ -107,7 +92,7 @@ class Bicycle(Agent):
         self.bw_length = 20  # length of the backwards view
         self.acceleration = 0  # actual longitudinal acceleration/braking for the current time step
         self.v_lat = 0  # actual lateral speed for the current time step
-        self.next_coords = [0,0]  # Attribute which stores the determined next coordinates
+        self.next_coords = (0,self.p)  # Attribute which stores the determined next coordinates
         self.next_speed = 0
         self.cat1_cyclists = []  # list of significantly slower cyclists in consideration range
         self.cat12_cyclists = []  # list of slightly slower cyclists in consideration range
@@ -177,17 +162,14 @@ class Bicycle(Agent):
     # Calculate and update the attributes in the next step
     # Determine and update the next coordinates
     def calPos(self): 
-        self.next_coords[0] = self.pos[0] + (self.speed+self.acceleration/2) * dt # to be modified
-        self.next_coords[1] = self.pos[1] + self.v_lat * dt # self.p # self.pos[1]
+        self.next_coords = (self.pos[0] + self.speed*run.dt + self.acceleration*0.5*run.dt**2, self.pos[1] + self.v_lat*run.dt)  # new x and y position values
     
     # Determine and update the next speed
     def calSpeed(self):
-        self.next_speed = self.speed + self.acceleration * dt # apply acceleration from ndm
-        # self.next_speed = self.speed
-        # self.speed = self.v0
+        self.next_speed = self.speed + self.acceleration * run.dt # apply acceleration from ndm
         
     def updateSize(self):
-        self.width = 0.8 + (self.zeta-self.zeta*(self.next_speed/(2+self.next_speed)))
+        self.width = 0.8  # 0.8 + (self.zeta-self.zeta*(self.next_speed/(2+self.next_speed)))
         ''' describe this formula in more detail '''
     
     def updateCR(self):
@@ -205,14 +187,14 @@ class Bicycle(Agent):
     
     ''' LEVEL 1: Desired lateral position '''
     def findLatPos(self): 
+        if self.unique_id==run.check_cyclist_id: print("\n****** LEVEL 1: LATERAL POSITION ******")
         # find cat1 cyclists in consideration range
         self.findCat1()
         # print(self.cat1_cyclists)
-        
         # if there is no cat. 1 cyclist in the consideration range
         if len(self.cat1_cyclists)==0:  
             self.des_lat_pos = self.p  # just go to the desired lateral position
-            # print("no cat. 1 leader")
+            if self.unique_id==run.check_cyclist_id: print("No cat. 1 leader, des_lat_pos={}".format(round(self.des_lat_pos,2)))
         else:
             # self.des_lat_pos = 2  # is this necessary? # random.uniform(1,3)
             # print(self.des_lat_pos)
@@ -235,7 +217,7 @@ class Bicycle(Agent):
                 
                 # if the path is narrow so that the only blocking cyclist is removed, there needs to be a criterion
                 if len(self.blocked_space_indiv)==0:
-                    unblocked_space.append([path_width,0,path_width])
+                    unblocked_space.append([run.path_width,0,run.path_width])
                     self.des_lat_pos = self.p
                     break
                 
@@ -243,7 +225,7 @@ class Bicycle(Agent):
                 for i in range(len(self.blocked_space_indiv)):
                     # if it is the first cyclist from the left
                     if i==0: 
-                        unblocked_space.append([path_width, self.blocked_space_indiv[i][2], round(path_width-self.blocked_space_indiv[i][2],2)])  # also add width of the gap 
+                        unblocked_space.append([run.path_width, self.blocked_space_indiv[i][2], round(run.path_width-self.blocked_space_indiv[i][2],2)])  # also add width of the gap 
                     elif self.blocked_space_indiv[i-1][1] <= self.blocked_space_indiv[i][2]:  # if the projection overlaps, there is not an additional unblocked space
                         continue
                     else: # add an additional unblocked space
@@ -272,15 +254,16 @@ class Bicycle(Agent):
                 
                 # delete furthest downstream cyclist from the list of blocking cyclists
                 del self.blocked_space_indiv[furthest_agent]
+            if self.unique_id==run.check_cyclist_id: print("Cat. 1 present, des_lat_pos={}".format(round(self.des_lat_pos,2)))
 
 
     ''' LEVEL 2: Moving angle and leader '''
     def findTraj(self):  
-        
+        if self.unique_id==run.check_cyclist_id: print("\n****** LEVEL 2: TRAJECTORY ************")
         # compute lateral movement distance to reach the desired position
         req_lat_move = self.des_lat_pos - self.getPos()[1]  # desired position minus actual position -> gives direction left or right directly
         obstr_cyclists = []  # cyclists potentially obstructing from reaching desired position
-        
+        if self.unique_id==run.check_cyclist_id: print("Reg_lat_move={}".format(round(req_lat_move,2)))
         # case with no slower cyclists
         if len(self.cat1_cyclists)==0: 
             # move the desired lateral speed to the position
@@ -291,7 +274,7 @@ class Bicycle(Agent):
                     self.v_lat = -self.omega_des
                 else:
                     self.v_lat = self.omega_des
-        
+            if self.unique_id==run.check_cyclist_id: print("No cat. 1 leader, v_lat={}".format(round(self.v_lat,2)))
         else: # case with slower cyclists remaining
             ''' Obstructing cyclists might be +-x distance left or right from the 'corridor'.'''
             
@@ -303,12 +286,12 @@ class Bicycle(Agent):
             # find non-obstructing cyclists depending on the direction of lateral movement
             for i in range(len(obstr_cyclists)):  
                 if req_lat_move < 0:  # when moving to the right
-                    if obstr_cyclists[i].getPos()[1] > self.getPos()[1] or obstr_cyclists[i].getPos()[1] < self.des_lat_pos:
+                    if obstr_cyclists[i].getPos()[1] > self.getPos()[1]+1 or obstr_cyclists[i].getPos()[1] < self.des_lat_pos-1:
                         remove_indices.append(i)
                 else:  # when moving to the left
-                    if obstr_cyclists[i].getPos()[1] < self.getPos()[1] or obstr_cyclists[i].getPos()[1] > self.des_lat_pos:
+                    if obstr_cyclists[i].getPos()[1] < self.getPos()[1]-1 or obstr_cyclists[i].getPos()[1] > self.des_lat_pos+1:
                         remove_indices.append(i)
-            
+                        ''' change +-1 to the width with safety region width '''
             # print('\n\nCat. 1 cyclists: ', self.cat1_cyclists)
             # print('\nSpace blockers before removal: ', obstr_cyclists)
             
@@ -377,8 +360,10 @@ class Bicycle(Agent):
                     else:
                         self.v_lat = (self.getSpeed()*math.tan(steepest_angle_temp))
                 # print('V_lat: ', self.v_lat)
-        
-        ''' Optional "look-back" module '''                         
+            if self.unique_id==run.check_cyclist_id: print("Cat. 1 present, v_lat={}".format(round(self.v_lat,2)))
+            
+        ''' Optional "look-back" module ''' 
+        '''                       
         # look back and abort lateral movement if faster cyclists are present
         self.findCat3Behind()
         # restrict to v_lat distance and project forward
@@ -388,12 +373,13 @@ class Bicycle(Agent):
         else:
             proj_Cat3Behind = [l for l in self.cat3_behind if l.getPos()[1] > self.pos[1] and l.getPos()[1] < (self.pos[1]+self.v_lat+1)]
         # sort for closest cyclist
+        '''
         ''' needs more thoughts on how to work '''
-        
+        '''
         if len(proj_Cat3Behind) != 0:
             self.v_lat = 0
             self.cut_off_flag = True
-        
+        '''
         
         ''' Find the leader '''
         # find the leader
@@ -441,12 +427,13 @@ class Bicycle(Agent):
                 # print('Leader: ', self.leader.getPos()[0])
             else:
                 self.leader = 0
-        
-        
+        if self.unique_id==run.check_cyclist_id and self.leader!=0: print("Direct leader {}".format(self.leader.unique_id))
+        if self.unique_id==run.check_cyclist_id and self.leader==0: print("No direct leader")
                 
             
     ''' LEVEL 3: Acceleration according to NDM '''
-    def findAcc(self): 
+    def findAcc(self):
+        if self.unique_id==run.check_cyclist_id: print("\n****** LEVEL 3: ACCELERATION **********")
         # define the ndm parameters and functions
         headway_s = 0  # headway to leader (between centers of cyclists)
         delta_v = 0  # speed difference to leader
@@ -458,40 +445,42 @@ class Bicycle(Agent):
         # calculate potential (positive) acceleration
         if self.leader == 0: # if there is no leader
             # calculate potential (positive) acceleration
-            acc = (self.v0-self.getSpeed())/a_des
+            acc = (self.v0-self.getSpeed())/self.a_des
             # acc = a_des
         
         elif self.leader != 0:  # if there is a leader
             if headway_s <= safety_dist_d:
                 acc = 0
             else:
-                acc = (self.v0-self.getSpeed())/a_des
+                acc = (self.v0-self.getSpeed())/self.a_des
                 # acc = a_des
             
-            print('\nacc: ', acc)
+            # print('\nacc: ', acc)
             # calculate delta_v
             delta_v = self.getSpeed() - self.leader.getSpeed()
-            print('delta v: ', delta_v)
+            # print('delta v: ', delta_v)
             
             # print(self.leader.getPos())
             # calculate long. headway and safety relevant safety distance
             headway_s = abs(self.getPos()[0]-self.leader.getPos()[0])
-            print('headway s: ', headway_s)
-            print('safety dist d: ', safety_dist_d)
+            # print('headway s: ', headway_s)
+            # print('safety dist d: ', safety_dist_d)
             # calculate first deceleration part: matching the speed of the slower leader
             if delta_v > 0:
-                dec1 = min((delta_v**2)/(2*(headway_s-self.length)), b_max) # necessary deceleration to match speed
+                dec1 = min((delta_v**2)/(2*(headway_s-self.length)), self.b_max) # necessary deceleration to match speed
                 ''' maybe adapt this part here so that the aim is to match the safety distance length '''
-            print('dec1: ', dec1)
+            # print('dec1: ', dec1)
             # calculate second deceleration part: fall back to maintain the desired safety distance
-            if delta_v <= 1 and headway_s <= safety_dist_d: 
-                dec2 = b_max / ((self.length-safety_dist_d)**2) * ((headway_s-safety_dist_d)**2)
-            print('dec2: ', dec2)
+            if delta_v <= 0.5 and headway_s <= safety_dist_d: 
+                dec2 = self.b_max / ((self.length-safety_dist_d)**2) * ((headway_s-safety_dist_d)**2)
+            # print('dec2: ', dec2)
             ''' Check this again later, maybe abs(delta_v) necessary '''
+            if self.unique_id==run.check_cyclist_id: print("delta_v={}, hw_s={}, safety_d={}".format(round(delta_v,2),round(headway_s,2),round(safety_dist_d,2)))
         
-        self.acceleration = acc - min(dec1+dec2, b_max) # limit total deceleration to b_max
-        print('Acceleration: ', self.acceleration)
-    
+        self.acceleration = acc - min(dec1+dec2, self.b_max) # limit total deceleration to b_max
+        # print('Acceleration: ', self.acceleration)
+        if self.unique_id==run.check_cyclist_id: print("acc={}, dec1={}, dec2={}".format(round(acc,2),round(dec1,2),round(dec2,2)))
+        if self.unique_id==run.check_cyclist_id: print("Total acceleration={}".format(round(self.acceleration,2)))
     ''' 
     **********************************
     *** STEP AND ADVANCE FUNCTIONS ***
@@ -501,6 +490,7 @@ class Bicycle(Agent):
     # Read surroundings and determine next coordinates after they all take actions (Note that the agent hasn't really moved when this function is called)
     def step(self):
         ''' CALL LEVEL FUNCTIONS '''
+        if self.unique_id==run.check_cyclist_id: print("active\n(v0={}, p={})".format(round(self.v0,2),round(self.p,2)))
         self.findLatPos() # level 1: lateral position
         self.findTraj() # level 2: moving angle and leader
         self.findAcc() # level 3: accelerations
@@ -512,28 +502,30 @@ class Bicycle(Agent):
         self.updateSize()
         self.updateCR()
         self.updateSR()
-        # 
+        if self.unique_id==run.check_cyclist_id: print("\n****** UPDATED VALUES *****************")
+        if self.unique_id==run.check_cyclist_id: print("v={}, cr_length={}, sr_length={}".format(round(self.speed,2),round(self.cr_length,2),round(self.sr_length,2)))
         
     
     # Take (physical) actions, this function would be called automatically after the step() function
     def advance(self):
         self.model.space.move_agent(self,self.next_coords) # update on the canvas
         self.pos = (self.next_coords[0],self.next_coords[1]) # update self attributes
+        # self.next_coords = tuple(self.next_coords) # make tuple from next coords
         self.speed = self.next_speed
         # print("Bicycle ",self.unique_id,"move to x = ",self.pos[0]," y = ",self.pos[1] - 0.5)
         # clear bicycles which finish the trip
         if self.pos[0] >= 300:
             self.model.to_be_removed.append(self)
 
-#%%
-# Model class
+#%% Model class
+
 class BikeLane(Model):
     def __init__(self):
         super().__init__()
         self.schedule = SimultaneousActivation(self)
         
         # Create the canvas, which is a 300-m-long bike lane, 2 m wide with 0.5 m extra lateral spaces on both sides
-        self.space = ContinuousSpace(300.1, path_width, torus=True) # Changed the torus=False here: otherwise, there will be an error because agents are 'out of bounds'
+        self.space = ContinuousSpace(300.1, run.path_width, torus=True) # Changed the torus=False here: otherwise, there will be an error because agents are 'out of bounds'
         
         # Initialize model variables
         self.time_step = 0
@@ -543,7 +535,7 @@ class BikeLane(Model):
         self.to_be_removed = [] # A list storing bicycles which finish the trip at the time step and to be removed
         
         # Data collection functions, collect positions of every bicycle at every step, namely trajectories
-        self.datacollector = DataCollector(agent_reporters={"Position": "pos", "Speed": "speed"})
+        self.datacollector = DataCollector(agent_reporters={"Position": "pos", "Speed": "speed", "latSpeed": "v_lat", "ID": "unique_id", "desSpeed": "v0", "srLength": "sr_length", "srWidth": "sr_width", "crLength": "cr_length"})
     
     def deduct(self):
         self.n_agents = self.n_agents - 1
@@ -559,8 +551,8 @@ class BikeLane(Model):
         self.deduct() # reduce n_agents by 1
         self.to_be_removed = []
         # Add bicycle agents at certain time steps
-        if self.inflow_count < len(Inflow_time):
-            if self.time_step == Inflow_time[self.inflow_count]:
+        if self.inflow_count < len(Inflow_step):
+            if self.time_step == Inflow_step[self.inflow_count]:
                 b = Bicycle(self.inflow_count, self)
                 self.schedule.add(b)
                 self.space.place_agent(b, self.initial_coords)
@@ -568,6 +560,7 @@ class BikeLane(Model):
                 self.n_agents += 1
         # Update the time
         self.time_step += 1
+        print("\n\n\nStep {}, cyclist {}".format(self.time_step,run.check_cyclist_id))  # review steps in console
         # Execute data collector
         self.datacollector.collect(self)
 
