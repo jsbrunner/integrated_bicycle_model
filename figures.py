@@ -159,7 +159,7 @@ def plot_simulation(agent_pos, save, filename): # more input relevant for differ
                 
                 ax.plot([row['Position_x'],row['Position_x']+row['Speed']*run.dt], [row['Position_y'],row['Position_y']+row['latSpeed']*run.dt], color='darkred', zorder=5)
                 
-                ax.text(row['Position_x'], row['Position_y']+0.5, "{} | {}".format(round(row['Speed'],1),round(row['desSpeed'],1)), ha='center', va='bottom', color='red', zorder=5)
+                ax.text(row['Position_x'], row['Position_y']+0.5, "{}/{}".format(round(row['Speed'],1),round(row['desSpeed'],1)), ha='center', va='bottom', color='red', zorder=5)
                 ax.text(row['Position_x'], row['Position_y']-0.5, row['ID'], ha='center', va='top', fontsize='large', color='red', zorder=5)
                 
                 ax.plot([row['Position_x']+row['crLength'],row['Position_x']+row['crLength']], [0,run.path_width], color='red', linestyle='dotted')
@@ -172,7 +172,7 @@ def plot_simulation(agent_pos, save, filename): # more input relevant for differ
         ax.plot([x_pos,x_pos+cur_speed*run.dt], [y_pos,y_pos+cur_lat_speed*run.dt], color='black', zorder=4)
         # ax.arrow(x_pos, y_pos, cur_speed*run.dt, cur_lat_speed*run.dt, color='crimson', zorder=4)
         for index, row in agent_pos_frame.iterrows():
-            ax.text(row['Position_x'], row['Position_y']+0.5, "{} | {}".format(round(row['Speed'],1),round(row['desSpeed'],1)), ha='center', va='bottom')
+            ax.text(row['Position_x'], row['Position_y']+0.5, "{}/{}".format(round(row['Speed'],1),round(row['desSpeed'],1)), ha='center', va='bottom')
             ax.text(row['Position_x'], row['Position_y']-0.5, row['ID'], ha='center', va='top', fontsize='large')
         
         # get minutes and seconds from the simulation step
@@ -185,6 +185,9 @@ def plot_simulation(agent_pos, save, filename): # more input relevant for differ
         ax.set_title(f'Time (minutes:seconds) {minutes:02}:{seconds:02}.{hundredth:02}  |  Step {frame:04}  |  dt = {run.dt}  |  ({filename}) ')
         ax.set_xlabel('Cycle path length (m)')
         ax.set_ylabel('Cycle path width (m)')
+        
+        for t in ax.texts:
+            t.set_clip_on(True)
         
     # matplotlib animation function
     anim = Player(fig, animate, agent_pos['Step'].unique(), interval=anim_interval, cache_frame_data=False)

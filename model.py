@@ -39,11 +39,11 @@ import run
 
 # In this case, we first assume bicycles are generated with a same interval (uniformly distributed) according to the demand.
 Interval = [int(run.time_steps*0.5 / run.Demand[i]) for i in range(len(run.Demand))] # Time interval in both of the two slots
-# print(Interval)
+print(Interval)
 Inflow_step = [] # time points that bicycles enter the bike lane
 for i in range(len(run.Demand)):
     Inflow_step.extend(list(range(0 + int(run.time_steps/2) * i, int(run.time_steps/2) * (i+1), Interval[i])))
-# print(Inflow_step)
+print(Inflow_step)
 ''' Stochasticity desired for the inflow (not always equal interval) '''
 
 
