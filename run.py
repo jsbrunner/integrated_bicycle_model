@@ -11,11 +11,11 @@ import random
 
 #%% Scenario-related  parameters
 random.seed(4) # Random seed for the scenario, note that for initial testings, it is better to use the same random seed so that the results are the same
-duration = 600  # seconds of simulation time (choose 5 mins for faster testing)
+duration = 60  # seconds of simulation time (choose 5 mins for faster testing)
 dt = 0.2  # time step length
 time_steps = int(duration/dt)  # number of time steps
 
-Demand = [200,400]  # Inflow demand (bicycle/h), each value represents the demand of half an hour (Hence, right now this is a one hour scenario with 150 bicycles in each half-an-hour.)
+Demand = [1000,1000]  # Inflow demand (bicycle/h), each value represents the demand of half an hour (Hence, right now this is a one hour scenario with 150 bicycles in each half-an-hour.)
 path_width = 4  # path width in m (-0.5 m on each side)
 path_length = ...  # path length in m
 
@@ -27,12 +27,12 @@ p_sd = 0.2 # m st. deviation for distribution of p
 agg_time = 10  # seconds for the derivation of the FD
 agg_dist = [50, 300]  # meters of simulation space for the derivation of the FD
 
-visuals = False  # output visualization (or not)
+visuals = True  # output visualization (or not)
 save_visuals = False  # save visuals
 data = False  # save dataframe (or not)
-analysis = True  # output analysis parameters (or not)
+analysis = False  # output analysis parameters (or not)
 
-check_cyclist_id = 10  # follow an individual cyclist to make debugging easier
+check_cyclist_id = 10  # follow an individual cyclist to make debugging easier; may also be nan
 
 #%% Run model
 from model import *
@@ -78,8 +78,9 @@ x Random seed
 #%%
 
 #%% Call analysis functions
-from analysis import *
-# plot_space_time(agent_pos, dt)
-plot_fd(agent_pos, dt, duration, agg_time, agg_dist)
+if analysis:
+    from analysis import *
+    plot_space_time(agent_pos, dt)
+    plot_fd(agent_pos, dt, duration, agg_time, agg_dist)
 
 # print(time_steps)
