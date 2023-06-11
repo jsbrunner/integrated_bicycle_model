@@ -4,7 +4,7 @@ Created on Fri Mar 10 17:16:44 2023
 
 @author: jsb10
 """
-
+'''
 import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
@@ -24,7 +24,7 @@ print(angle, angle2)
 y_calc = x * math.tan(angle2)
 
 print(y_calc)
-
+'''
 '''
 x=[1,2,3,4,5,6,7,8,9]
 y=[2,3,6,4,9,6,7,8,1]
@@ -34,5 +34,8 @@ plt.show
 plt.savefig('testfile.png', dpi=400)
 '''
 
+from datetime import datetime
+current = datetime.now().strftime("%Y-%m-%d_%H%M")
+print(current)
 
 

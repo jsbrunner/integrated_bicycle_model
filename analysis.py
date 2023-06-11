@@ -1,21 +1,22 @@
 # -*- coding: utf-8 -*-
-"""
-Created on Sat Apr  8 12:15:25 2023
 
-@author: jsb10
-"""
 import pandas as pd
 import matplotlib.pyplot as plt
-#%%
+from datetime import datetime
 
-def plot_space_time(agent_pos, dt):
+
+def plot_space_time(agent_pos, 
+                    dt = 0.2,
+                    space_time_filename = 'space_time'
+                    ):
+    
     pd.set_option('display.max_columns', None)
     unique_cyclists = agent_pos.AgentID.unique()
     print(unique_cyclists)
     
     agent_pos['Time'] = agent_pos['Step'] * dt
     print(agent_pos)
-    fig, ax = plt.subplots(figsize=(10,6))
+    fig, ax = plt.subplots(figsize=(10,6), layout='constrained')
     for i in unique_cyclists:
         cyclist_traj = agent_pos[agent_pos.AgentID == i]
         ax.plot(cyclist_traj['Time'], cyclist_traj['Position_x'], color='black')
@@ -23,9 +24,18 @@ def plot_space_time(agent_pos, dt):
     ax.set_xlabel('Time (s)')
     ax.set_ylabel('Distance (m)')
     plt.show()  
+    
+    if type(space_time_filename) is str:
+        fig.savefig("figures/" + space_time_filename + datetime.now().strftime("_%Y-%m-%d_%H%M") + ".pdf", format='pdf')
 
 
-def plot_fd(agent_pos, dt, duration, agg_time, agg_dist):
+def plot_fd(agent_pos,  # model data frame
+            dt = 0.2,  # time step length (s)
+            duration = 60,  # simulation duration (s)
+            agg_time = 10,  # aggregation interval for fundamental diagram (s)
+            agg_dist = [50, 300],  # aggregation distance / space for fundamental diagram (min and max value in m)
+            fd_filename = "fundamental_diagram"):
+    
     agg_steps = int(agg_time/dt)
     agent_pos['Time'] = agent_pos['Step'] * dt
     print(agent_pos)
@@ -69,7 +79,7 @@ def plot_fd(agent_pos, dt, duration, agg_time, agg_dist):
         q_k_v = pd.concat([q_k_v, new_row], ignore_index=True)
     print(q_k_v)
     
-    fig, ax = plt.subplots(figsize=(10,6))
+    fig, ax = plt.subplots(figsize=(10,6), layout='constrained')
     ax.scatter(q_k_v['Density'], q_k_v['Flow'], color='black')
     ax.set_title('Fundamental diagram for a 3-m-wide path')
     ax.set_xlabel('Bicycle density (bic/m)')
@@ -77,6 +87,23 @@ def plot_fd(agent_pos, dt, duration, agg_time, agg_dist):
     fig.tight_layout()
     plt.show()
     
+    
+    '''
+    ********************
+    *** FIT FD CURVE ***
+    ********************
+    '''
+    
+    
+    '''
+    ****************************
+    *** RETURN FD PARAMETERS ***
+    ****************************
+    '''
+    
+def collisions(agent_pos):
+    # Compute collisions in whole data frame (in total number, per cyclist, per km cycled)
+    ...
     
             
             
