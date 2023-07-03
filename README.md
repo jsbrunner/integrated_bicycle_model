@@ -12,6 +12,7 @@ July 2023 <br />
 - Statsmodels
 
 ## Run the simulation
+The functions are provided with the standard model parameters that work well. Note, that the parameters need to be consistent across all of the following functions. The model might not work as expected when parameters are modified.
 ```
 from model import micromodel
 model = micromodel(seed = 4,  # random seed
@@ -42,7 +43,7 @@ model = micromodel(seed = 4,  # random seed
                data_filename = "simulation_data",  # type 0 if file should not be saved
                demand_input = 'stochastic')  # 'fixed' for fixed interval inflow
 ```
-## Plot the animated simulation
+## Plot the interactive animation
 ```
 from figures import plot_simulation
 plot_simulation(model, 
@@ -72,5 +73,3 @@ plot_space_time(model,
                     dt = 0.2,
                     space_time_filename = 'space_time')
 ```
-
-Note, that the specifications need to be consistent across all functions.
