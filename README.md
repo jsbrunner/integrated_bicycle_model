@@ -13,7 +13,7 @@ July 2023 <br />
 - Statsmodels
 
 ## Run the simulation
-'''
+```
 from model import micromodel
 model = micromodel(seed = 4,  # random seed
                duration = 3600,  # simulation duration (s) 3600/12 = 300 s
@@ -42,4 +42,4 @@ model = micromodel(seed = 4,  # random seed
                side_obstacle = 0.2,  # width deducted from both sides of the extended path to simulate obstacles (m)
                data_filename = "simulation_data",  # type 0 if file should not be saved
                demand_input = 'stochastic')
-'''
+```
