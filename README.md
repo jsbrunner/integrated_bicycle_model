@@ -9,7 +9,6 @@ July 2023 <br />
 - Pandas
 - Math
 - Random
-- Datetime
 - Statsmodels
 
 ## Run the simulation
@@ -25,7 +24,7 @@ model = micromodel(seed = 4,  # random seed
                v0_sd = 1,  # standard deviation of desired speed (m/s)
                p_mean = 1,  # mean of desired lateral position / distance from right edge +0.5 (m)
                p_sd = 0.2,  # standard deviation for desired lateral position (m)
-               check_cyclist_id = -1,  # follow the choices of an individual cyclist with his unique_id; put 'False' for no output
+               check_cyclist_id = -1,  # follow the choices of an individual cyclist with his unique_id; put -1 for no output
                b_length = 2,  # bicycle length (m)
                b_width = 0.8,  # bicycle width (m)
                d_standing = 0.1,  # minimum standing distance to other cyclists (m)
@@ -41,5 +40,37 @@ model = micromodel(seed = 4,  # random seed
                lookback = 1,  # proportion of cyclists looking back before moving laterally [0,1]
                side_obstacle = 0.2,  # width deducted from both sides of the extended path to simulate obstacles (m)
                data_filename = "simulation_data",  # type 0 if file should not be saved
-               demand_input = 'stochastic')
+               demand_input = 'stochastic')  # 'fixed' for fixed interval inflow
 ```
+## Plot the animated simulation
+```
+from figures import plot_simulation
+plot_simulation(model, 
+                    dt = 0.2,  # time step length (s)
+                    path_width = 2,
+                    bottleneck_width = 0,
+                    anim_interval = 500, # time to update (ms); 500 ms = 2 FPS
+                    plot_length = [0,300],  # start and end of space to show the simulation (m)
+                    check_cyclist_id = -1, 
+                    animation_filename = "animation")
+```
+## Create fundamental diagram
+```
+from analysis import plot_fd
+plot_fd(model, 
+            dt = 0.2,  # time step length (s)
+            duration = 3600,  # simulation duration (s)
+            agg_time = 15,  # aggregation interval for fundamental diagram (s)
+            agg_dist = [100, 250],  # aggregation distance for fundamental diagram (min and max value in m)
+            path_width = 2,
+            fd_filename = "fundamental_diagram")
+```
+## Create space-time diagram
+```
+from analysis import plot_space_time
+plot_space_time(model, 
+                    dt = 0.2,
+                    space_time_filename = 'space_time')
+```
+
+Note, that the specifications need to be consistent across all functions.
