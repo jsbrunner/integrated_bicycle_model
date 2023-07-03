@@ -26,8 +26,8 @@ def plot_space_time(agent_pos,
     ax.set_title(space_time_filename)
     ax.set_xlabel('Time (s)')
     ax.set_ylabel('Distance (m)')
-    ax.set_xlim(1700,1775)
-    ax.set_ylim(80,270)
+    # ax.set_xlim(1700,1775)
+    # ax.set_ylim(80,270)
     plt.show()  
     
     if type(space_time_filename) is str:
